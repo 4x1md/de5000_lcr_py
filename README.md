@@ -1,6 +1,8 @@
 # DER DE-5000 Python Library
 Python library for reading data from DER DE-5000 LCR meter.
 
+![DE-5000](https://raw.githubusercontent.com/4x1md/de5000_lcr_py/master/images/de-5000.jpg)
+
 ## Overview
 
 This library was written as a weekend project. Its main goal was to know better the DE-5000 meter.
@@ -11,7 +13,9 @@ I bought this meter from one of Japanese sellers on eBay for about $100. The lot
 
 The LCR meter transmits its data using IR port. I had already the RS-232 connection cable from the UNI-T UT61E multimeter and it made me curious if it could work with DE-5000 as well.
 
-An experiment showed tha the answer is yes. You can use the IR receiver which comes with UT61E to read data from DE-500. I'm quite sure that it will work with other DER DE multimeters too. They are not compatible mechanically but when the IR receiver is placed at about 5-10 cm from the LCR meter, the reception is quite stable.
+![DE-5000](https://raw.githubusercontent.com/4x1md/de5000_lcr_py/master/images/de-5000_ut61e.jpg)
+
+An experiment showed that the answer is yes. You can use the IR receiver which comes with UT61E to read data from DE-500. I'm quite sure that it will work with other DER DE multimeters too. They are not compatible mechanically but when the IR receiver is placed at about 5-10 cm from the LCR meter, the reception is quite stable.
 
 ## Software
 
