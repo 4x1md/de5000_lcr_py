@@ -25,9 +25,9 @@ An experiment showed that the answer is yes. Yhe IR receiver which comes with UT
 
 The script can be run from command line using the following command:
 
-'''python de5000_reader.py [com_port_name]'''
+```python de5000_reader.py [com_port_name]```
 
-where '''[com_port_name]''' is the name of serial port where your IR receiver is connected. In Windows it will be '''COM1''', '''COM2''' or another COM port. In Linux the will usually be '''/dev/ttyUSB0''', '''/dev/ttyUSB1''' etc.
+where ```[com_port_name]``` is the name of serial port where your IR receiver is connected. In Windows it will be ```COM1```, ```COM2``` or another COM port. In Linux the will usually be ```/dev/ttyUSB0```, ```/dev/ttyUSB1``` etc.
 
 ## Plans for future develompent
 
