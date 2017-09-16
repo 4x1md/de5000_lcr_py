@@ -215,6 +215,8 @@ The measured value is returned by ```get_meas(self)``` function as a dictionary 
 
 ## Output examples
 
+![Output examples](https://raw.githubusercontent.com/4x1md/de5000_lcr_py/master/images/output_example.png)
+
 ## Running the script
 
 The script can be run from command line using the following command:
