@@ -6,25 +6,9 @@ Created on Sep 15, 2017
 Serial port settings: 9600 8N1 DTR=1 RTS=0 
 '''
 
-'''
-Useful links:
-
-https://github.com/3s1d/libsigrok-dev/tree/master/src/hardware/deree-de5000
-https://github.com/3s1d/libsigrok-dev/commit/b50891952d22d1c5012a99ad643ee3dd58495420
-https://github.com/merbanan/libsigrok/blob/master/src/lcr/es51919.c
-https://sigrok.org/gitweb/?p=libsigrok.git;a=blob;f=src/lcr/es51919.c;hb=HEAD
-https://github.com/3s1d/libsigrok-dev/blob/master/src/hardware/deree-de5000/api.c
-https://sigrok.org/wiki/UNI-T_UT612
-https://sigrok.org/wiki/Multimeter_ICs/Cyrustek_ES51919
-
-http://www.ietlabs.com/pdf/Datasheets/DE_5000.pdf
-
-'''
-
 import serial
 
-DEBUG = False
-
+# Settings constants
 BAUD_RATE = 9600
 BITS = serial.EIGHTBITS
 PARITY = serial.PARITY_NONE
@@ -35,8 +19,8 @@ EOL = b'\x0D\x0A'
 RAW_DATA_LENGTH = 17
 READ_RETRIES = 3
 
-# Cyrustek ES51919 LCR chipset host protocol
-# 0x02: Flags
+# Cyrustek ES51919 protocol constants
+# Byte 0x02: flags
 # bit 0 = hold enabled
 HOLD = 0b00000001
 # bit 1 = reference shown (in delta mode)
@@ -54,7 +38,7 @@ AUTO_RANGE = 0b01000000
 # bit 7 = parallel measurement (vs. serial)
 PARALLEL = 0b10000000
 
-# 0x03 bits 5-7: Frequency
+# Byte 0x03 bits 5-7: Frequency
 FREQ = [
     '100 Hz',
     '120 Hz',
@@ -64,7 +48,7 @@ FREQ = [
     'DC'
     ]
 
-# 0x04: Tolerance
+# Byte 0x04: tolerance
 TOLERANCE = [
     None,
     None, None,
@@ -78,15 +62,11 @@ TOLERANCE = [
     '-20+80%',
     ]
 
-# 0x05-0x09: Primary measurement
-# 0x05: Measured quantity
+# Byte 0x05: primary measured quantity (serial and parallel mode)
 MEAS_QUANTITY_SER = [None, 'Ls', 'Cs', 'Rs', 'DCR']
 MEAS_QUANTITY_PAR = [None, 'Lp', 'Cp', 'Rp', 'DCR']
 
-# 0x06-0x07: measurement MSB and LSB (0x4e20 = 20000 = outside limits)
-MAIN_OL = 20000
-
-# 0x08 bits 3-7: Units
+# Bytes 0x08, 0x0D bits 3-7: Units
 MAIN_UNITS = [
     '',
     'Ohm',
@@ -106,7 +86,7 @@ MAIN_UNITS = [
     None, None, None, None, None, None
     ]
 
-# 0x09 bits 0-3: Measurement status
+# Bytes 0x09, 0x0E bits 0-3: Measurement display status
 STATUS = [
     'normal',
     'blank',
@@ -119,8 +99,7 @@ STATUS = [
     'Srt'
     ]
 
-# 0x0a-0x0e: Secondary measurement
-# 0x0a: measured quantity
+# Byte 0x0a: secondary measured quantity
 SEC_QUANTITY = [
     None,
     'D',
@@ -129,18 +108,22 @@ SEC_QUANTITY = [
     'Theta'
     ]
 RP = 'RP'
-# 0x0b-0x0e: Like primary measurement
 
+# Output format
 MEAS_RES = {
     'main_quantity': None,
     'main_val': None,
     'main_units': None,
     'main_status': None,
+    'main_norm_val': None,
+    'main_norm_units': None,
     
     'sec_quantity': None,
     'sec_val': None,
     'sec_units': None,
     'sec_status': None,
+    'sec_norm_val': None,
+    'sec_norm_units': None,
 
     'freq': None,
     'tolerance': None,
@@ -155,6 +138,24 @@ MEAS_RES = {
     'data_valid': False
     }
 
+# Normalization constants
+# Each value contains multiplier and target value
+NORMALIZE_RULES = {
+    '':     (1, ''),
+    'Ohm':  (1, 'Ohm'),
+    'kOhm': (1E3, 'Ohm'),
+    'MOhm': (1E6, 'Ohm'),
+    'uH':   (1E-6, 'H'),
+    'mH':   (1E-3, 'H'),
+    'H':    (1, 'H'),
+    'kH':   (1E3, 'H'),
+    'pF':   (1E-12, 'F'),
+    'nF':   (1E-9, 'F'),
+    'uF':   (1E-6, 'F'),
+    'mF':   (1E-3, 'F'),
+    '%':    (1, '%'),
+    'deg':  (1, 'deg')    
+    }
 
 class DE5000(object):
     
@@ -295,6 +296,11 @@ class DE5000(object):
         val = val >> 3
         res['main_units'] = MAIN_UNITS[val]
         
+        # Normalize value
+        nval = self.normalize_val(res['main_val'], res['main_units'])
+        res['main_norm_val'] = nval[0]
+        res['main_norm_units'] = nval[1]
+        
         # Secondary measurement
         # Status
         val = raw_data[0x0E]
@@ -327,6 +333,11 @@ class DE5000(object):
         val = val * 10**-mul
         res['sec_val'] = val
         
+        # Normalize value
+        nval = self.normalize_val(res['sec_val'], res['sec_units'])
+        res['sec_norm_val'] = nval[0]
+        res['sec_norm_units'] = nval[1]
+        
         # Tolerance
         val = raw_data[0x04]
         res['tolerance'] = TOLERANCE[val]
@@ -334,15 +345,20 @@ class DE5000(object):
         res['data_valid'] = True
         
         return res
+    
+    def normalize_val(self, val, units):
+        '''Normalizes measured value to standard units. Resistance
+        is normalized to Ohm, capacitance to Farad and inductance
+        to Henry. Other units are not changed.'''
+        val = val * NORMALIZE_RULES[units][0]
+        units = NORMALIZE_RULES[units][1]
+        return (val, units) 
 
-    def pretty_print(self):
-        '''Prints measurement details in pretty print.'''
+    def pretty_print(self, disp_norm_val = False):
+        '''Prints measurement details in pretty print.
+        disp_norm_val: if True, normalized values will also be displayed.
+        '''
         data = self.get_meas()
-        
-        if DEBUG:
-            dic_str = "%s" % data
-            dic_str = dic_str.replace(", ", ",\n")
-            print dic_str
         
         if data['data_valid'] == False:
             print "DE-5000 is not connected."
@@ -389,7 +405,19 @@ class DE5000(object):
             print
         else:
             print data['sec_status']
-
+        
+        # Display normalized values
+        # If measurement status is not normal, ---- will be displayed.
+        if disp_norm_val:
+            if data['main_status'] == 'normal':
+                print "Primary: %s %s" % (data['main_norm_val'], data['main_norm_units'])
+            else:
+                print "Primary: ----"
+            if data['sec_status'] == 'normal':
+                print "Secondary: %s %s" % (data['sec_norm_val'], data['sec_norm_units'])
+            else:
+                print "Secondary: ----"
+        
     def __del__(self):
         if hasattr(self, '_ser'):
             self._ser.close()
