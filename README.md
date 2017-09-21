@@ -15,11 +15,11 @@ The LCR meter transmits its data using IR port. I had already the RS-232 connect
 
 ![DE-5000](https://raw.githubusercontent.com/4x1md/de5000_lcr_py/master/images/de-5000_ut61e.jpg)
 
-An experiment showed that the answer is yes. Yhe IR receiver which comes with UT61E can be used to read data from DE-500. I'm quite sure that it will work with other DER DE multimeters too. They are not compatible mechanically but when the IR receiver is placed at about 5-10 cm from the LCR meter, the reception is quite stable.
+An experiment showed that the IR receiver which comes with UT61E will work fine for reading data from DE-5000. They are not compatible mechanically but if the IR receiver is placed carefully at about 5-10 cm from the LCR meter, the reception is stable. I'm quite sure that it will work with other DER DE multimeters too.
 
 ## DE-5000 protocol
 
-The meter uses Cyrustek ES51919 chipset which is also used in other LCR meters. There is no official information about it I could found. My only source was [ES51919 protocol description](https://sigrok.org/wiki/Multimeter_ICs/Cyrustek_ES51919) and [ES51919 driver](https://github.com/merbanan/libsigrok/blob/master/src/lcr/es51919.c) in [sigrok project](https://sigrok.org/wiki/Main_Page). They did a very good job on reverse engineering!
+The meter uses Cyrustek ES51919 chipset which is also used in other LCR meters. I could'nt find any official information about it and my only source was [ES51919 protocol description](https://sigrok.org/wiki/Multimeter_ICs/Cyrustek_ES51919) and [ES51919 driver](https://github.com/merbanan/libsigrok/blob/master/src/lcr/es51919.c) in [sigrok project](https://sigrok.org/wiki/Main_Page). They did a very good job on reverse engineering!
 
 Each packet contains 17 bytes.
 
@@ -100,8 +100,8 @@ Bytes 0x05-0x09 describe primary measurement
 			8 = FAIL (sorting mode)
 			9 = OPEn (calibration mode)
 			10 = Srt (calibration mode)
-		bit 4-6: Unknown (maybe part of same field with 0-3)
-		bit 7:   Unknown
+		bit 4-6: unknown (maybe part of same field with 0-3)
+		bit 7:   unknown
 
 Bytes 0x0A-0x0E describe secondary measurement
 0x0A	Measured quantity
@@ -143,9 +143,9 @@ Class constructor requires serial port name only. all other settings are defined
 
 ```RAW_DATA_LENGTH```: data packet size.
 
-```READ_RETRIES```: packet reading retries. This value shows how many retries to receive a valid packet should be done before returning an error.
+```READ_RETRIES```: packet reading attempts. This value shows how many attempts to receive a valid packet should be made before returning an error.
 
-The class contains the following functions:
+The ```DE5000``` class contains the following functions:
 
 ```read_raw_data(self)```: reads raw data packet from serial port as array of byte values.
 
@@ -161,51 +161,51 @@ The class contains the following functions:
 
 ### Returned data format
 
-The measured value is returned by ```get_meas(self)``` function as a dictionary with the following fields:
+The received data is returned by ```get_meas()``` function as a dictionary with the following fields:
 
-```main_quantity```: string, main displayed quantity (Ls, Lp, Cs, Cp, Rs, Rp, DCR),
+```main_quantity``` [string]: main displayed quantity (Ls, Lp, Cs, Cp, Rs, Rp, DCR),
 
-```main_val```: float, main displayed value,
+```main_val``` [float]: main displayed value,
 
-```main_units```: string, main displayed units,
+```main_units``` [string]: main displayed units,
 
-```main_status```: string, main display status (value, blank, OL, PASS, FAIL etc.),
+```main_status``` [string]: main display status (value, blank, OL, PASS, FAIL etc.),
 
-```main_norm_val```: float, main displayed value, normalized to standard units (Ohm, Farad, Henry),
+```main_norm_val``` [float]: main displayed value, normalized to standard units (Ohm, Farad, Henry),
 
-```main_norm_units```: string, units of normalized value, 
+```main_norm_units``` [string]: units of normalized value, 
 
-```sec_quantity```: string, secondary displayed quantity (D, Q, Theta, ESR etc.), 
+```sec_quantity``` [string]: secondary displayed quantity (D, Q, Theta, ESR etc.), 
 
-```sec_val```: float, secondary displayed value,
+```sec_val``` [float]: secondary displayed value,
 
-```sec_units```: string, secondary display units,
+```sec_units``` [string]: secondary display units,
 
-```sec_status```: string, secondary display status (value, blank, OL, ---- etc.),
+```sec_status``` [string]: secondary display status (value, blank, OL, ---- etc.),
 
-```sec_norm_val```: float, secondary displayed value, normalized to standard units (Ohm, Farad, Henry),
+```sec_norm_val``` [float]: secondary displayed value, normalized to standard units (Ohm, Farad, Henry),
 
-```sec_norm_units```: string, units of normalized value,
+```sec_norm_units``` [string]: units of normalized value,
 
-```freq```: string, test frequency,
+```freq``` [string]: test frequency,
 
-```tolerance```: string, tolerance in sorting mode,
+```tolerance``` [string]: tolerance in sorting mode,
 
-```ref_shown```: boolean, True if reference value is shown in REL % mode (delta sign is blinking),
+```ref_shown``` [bool]: True if reference value is shown in REL % mode (delta sign is blinking),
 
-```delta_mode```: boolean, True if the device is in REL % (delta) mode,
+```delta_mode``` [bool]: True if the device is in REL % (delta) mode,
 
-```cal_mode```: boolean, True when calibration mode is active,
+```cal_mode``` [bool]: True when calibration mode is active,
 
-```sorting_mode```: boolean, True if the device is in sorting mode,
+```sorting_mode``` [bool]: True if the device is in sorting mode,
 
-```lcr_auto```: boolean, True if the device is in LCR AUTO mode (autodetection of DUT type),
+```lcr_auto``` [bool]: True if the device is in LCR AUTO mode (autodetection of DUT type),
 
-```auto_range```: boolean, True if auto range is active (all modes except sorting),
+```auto_range``` [bool]: True if auto range is active (all modes except sorting),
 
-```parallel```: boolean, True if the measurement is done in parallel mode,
+```parallel``` [bool]: True if the measurement is done in parallel mode,
 
-```data_valid```: boolean, True if data in the dictionary is valid.
+```data_valid``` [bool]: True if data in the dictionary is valid.
 
 ### de5000_reader.py
 
@@ -219,11 +219,11 @@ The measured value is returned by ```get_meas(self)``` function as a dictionary 
 
 ## Running the script
 
-The script can be run from command line using the following command:
+The ```de5000_reader.py``` script is run from command line using the following command:
 
 ```python de5000_reader.py [com_port_name]```
 
-where ```[com_port_name]``` is the name of serial port where your IR receiver is connected. In Windows it will be ```COM1```, ```COM2``` or another COM port. In Linux the will usually be ```/dev/ttyUSB0```, ```/dev/ttyUSB1``` etc.
+where ```[com_port_name]``` is the name of serial port where your IR receiver is connected. In Windows it will be ```COM1```, ```COM2``` or another COM port. In Linux the will usually be ```/dev/ttyUSB0```, ```/dev/ttyUSB1``` etc. If not specified, the script will use port name stored in ```PORT``` constant.
 
 ## Plans for future develompent
 
