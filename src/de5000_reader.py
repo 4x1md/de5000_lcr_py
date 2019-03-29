@@ -34,5 +34,5 @@ if __name__ == '__main__':
         print "Serial port error."
     except KeyboardInterrupt:
         print
-        print "Extiting DE-5000 monitor."
+        print "Exiting DE-5000 monitor."
         sys.exit()
